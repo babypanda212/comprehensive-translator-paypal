@@ -45,10 +45,9 @@ let totalPrice = null
   async function createOrderCallback() {
     resultMessage("");
     
-  
-  let entryId = getCookieAndDelete('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
+  entryId = getCookieAndDelete('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
   console.log('retrieved cookie, entry id is' + entryId);
-  let totalPrice = getCookieAndDelete('total_price'); 
+  totalPrice = getCookieAndDelete('total_price'); 
   console.log('retrieved cookie, the total price is' + totalPrice)
 
     try {
