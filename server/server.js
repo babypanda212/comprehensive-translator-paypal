@@ -146,7 +146,7 @@ async function fetchForminatorEntryEmail(entryId) {
               'Content-Type': 'application/json'
           }
       });
-        if (!response.ok) throw new Error('Failed to fetch email, Status: ${response.status}, ${response.statusText}');
+        if (!response.ok) throw new Error(`Failed to fetch email, Status: ${response.status}, ${response.statusText}`);
         
         const data = await response.json();
     return data; // This should include both email and file_path
@@ -233,8 +233,13 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
       
       // Fetch customer email
-      const emailData = await fetchForminatorEntryEmail(entryId);
-
+      try {
+        const emailData = await fetchForminatorEntryEmail(entryId);
+  
+      } catch (error) {
+        console.error('Failed to fetch email data');
+      }
+      
       if (emailData && emailData.email && emailData.file_path) {
         console.log('Customer Email:', emailData.email);
         console.log('File Path:', emailData.file_path);
@@ -268,7 +273,6 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         text: 'You have a new order',
         attachments: attachment
         };
-
       
         try {
           await sendEmail(mailOptionsSeller);
