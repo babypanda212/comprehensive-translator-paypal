@@ -84,6 +84,14 @@ function onClose() {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          cart: [
+            {
+              id: entryId,
+              price: totalPrice
+            },
+          ],
+        }),
       });
   
       const orderData = await response.json();

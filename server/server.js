@@ -130,8 +130,6 @@ async function handleResponse(response) {
   }
 }
 
-const base64 = require('base-64');
-
 async function fetchForminatorEntryEmail(entryId) {
   const username = process.env.WP_USERNAME;
   const appPassword = process.env.WP_APP_PASSWORD;  // Use the generated application password
