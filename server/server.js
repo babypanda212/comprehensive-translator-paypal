@@ -3,8 +3,8 @@ import fetch from "node-fetch";
 import "dotenv/config";
 import base64 from 'base-64';
 import nodemailer from "nodemailer";
-import fs from 'fs';
 import path from 'path';
+import { error } from "console";
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
 const base = "https://api-m.sandbox.paypal.com";
@@ -178,6 +178,14 @@ async function sendEmail(to, subject, htmlContent, attachments = []) {
         attachments: attachments, // An array of attachments
     };
 
+    transporter.verify(function(error, success) {
+        if (error) {
+            console.log(error);
+        } else {
+          console.log(" server ready")
+        }
+    });
+
     try {
         let info = await transporter.sendMail(mailOptions);
         console.log('Message sent: %s', info.messageId);
@@ -258,8 +266,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         from: sellerEmail,
         to: emailData.email, // list of receivers
         subject: 'Order Confirmation',
-        text: 'Your order has been confirmed.',
-        attachments: []
+        text: 'Your order has been confirmed.'
         };
 
         try {
