@@ -166,6 +166,8 @@ let transporter = nodemailer.createTransport({
         user: 'ayeshakhan.mct@gmail.com', // Replace with your SMTP username
         pass: sellerEmail_pass, // Replace with your SMTP password
     },
+    debug: true, // show debug output
+    logger: true // log information in console
 });
 
 // Function to send an email
