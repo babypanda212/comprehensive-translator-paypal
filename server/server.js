@@ -171,14 +171,7 @@ let transporter = nodemailer.createTransport({
 });
 
 // Function to send an email
-async function sendEmail(to, subject, htmlContent, attachments = []) {
-    let mailOptions = {
-        from: sellerEmail, // Sender address
-        to: to, // List of receivers
-        subject: subject, // Subject line
-        html: htmlContent, // HTML body content
-        attachments: attachments, // An array of attachments
-    };
+async function sendEmail(mailOptions) {
 
     transporter.verify(function(error, success) {
         if (error) {
@@ -274,7 +267,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         };
 
         
-        console.log(mailOptionsCustomer)
+        console.log('the data being passed for customer email', mailOptionsCustomer)
 
         try {
           await sendEmail(mailOptionsCustomer);
@@ -292,7 +285,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         };
         
 
-        console.log(mailOptionsSeller)
+        console.log('the data being passed for seller email', mailOptionsSeller)
 
         try {
           await sendEmail(mailOptionsSeller);
