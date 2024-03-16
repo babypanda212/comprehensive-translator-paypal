@@ -222,7 +222,8 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
     const { orderID } = req.params;
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
-    
+    console.log("Capture Order HTTP Status Code:", httpStatusCode);
+
     res.status(httpStatusCode).json(jsonResponse);
 
     // Check if transaction was successful
