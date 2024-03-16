@@ -188,6 +188,8 @@ async function sendEmail(to, subject, htmlContent, attachments = []) {
         }
     });
 
+    console.log(mailOptions)
+
     try {
         let info = await transporter.sendMail(mailOptions);
         console.log('Message sent: %s', info.messageId);
@@ -271,6 +273,9 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         text: 'Your order has been confirmed.'
         };
 
+        
+        console.log(mailOptionsCustomer)
+
         try {
           await sendEmail(mailOptionsCustomer);
           console.log('Customer email attempted');
@@ -285,7 +290,10 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         text: 'You have a new order',
         attachments: attachment
         };
-      
+        
+
+        console.log(mailOptionsSeller)
+
         try {
           await sendEmail(mailOptionsSeller);
           console.log('Seller email attempted');
