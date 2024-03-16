@@ -226,14 +226,12 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
-    res.status(httpStatusCode).json(jsonResponse);
-
     // Check if transaction was successful
     if (httpStatusCode === 201) {
       const { id: entryId, price: totalPrice } = req.body.cart[0];
 
-      console.log('EntryID and Price Retrieved');
-
+      console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
+      
       // Fetch customer email
       const emailData = await fetchForminatorEntryEmail(entryId);
 
@@ -256,10 +254,13 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         attachments: null
         };
 
-        await sendEmail(mailOptionsCustomer);
-        console.log('Customer email sent successfully');
-      
-
+        try {
+          await sendEmail(mailOptionsCustomer);
+          console.log('Customer email sent successfully');
+        } catch (error) {
+          console.error('Failed to send customer email:', error);
+        }
+        
         let mailOptionsSeller = {
         from: sellerEmail,
         to: sellerEmail, // list of receivers
@@ -269,14 +270,21 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         };
 
       
-        await sendEmail(mailOptionsSeller);
-        console.log('Seller email sent successfully', info.messageId);
+        try {
+          await sendEmail(mailOptionsSeller);
+          console.log('Seller email sent successfully', info.messageId);
+        } catch (error) {
+          console.error('Failed to send seller email:', error);          
+        }
 
       }
 
       } else {
-        console.error('Customer email not found for entryid:', entryId)
+        console.error('Customer email not found for entryid:', entryId);
       }
+
+      res.status(httpStatusCode).json(jsonResponse);
+
 
     }
     
