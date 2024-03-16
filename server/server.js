@@ -3,6 +3,8 @@ import fetch from "node-fetch";
 import "dotenv/config";
 import base64 from 'base-64';
 import nodemailer from "nodemailer";
+import fs from 'fs';
+import path from 'path';
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
 const base = "https://api-m.sandbox.paypal.com";
@@ -146,12 +148,12 @@ async function fetchForminatorEntryEmail(entryId) {
       });
         if (!response.ok) throw new Error('Failed to fetch email, Status: ${response.status}, ${response.statusText}');
         
-        const { email : email, file_path : file_path } = await response.json();
-        console.log('Email fetched:', email); // Use the email as needed
-        console.log('File path fetched:', file_path);
-    } catch (error) {
-      console.error('Error fetching Forminator entry email or file path:', error);
-    }
+        const data = await response.json();
+    return data; // This should include both email and file_path
+  } catch (error) {
+    console.error('Error fetching Forminator entry email or file path:', error);
+    return null;
+  }
 }
 
 
@@ -229,43 +231,56 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     // Check if transaction was successful
     if (httpStatusCode === 201) {
       const { id: entryId, price: totalPrice } = req.body.cart[0];
+
       console.log('EntryID and Price Retrieved');
 
       // Fetch customer email
-      const { customerEmail, file_path } = await fetchForminatorEntryEmail(entryId);
+      const emailData = await fetchForminatorEntryEmail(entryId);
+
+      if (emailData && emailData.email && emailData.file_path) {
+        console.log('Customer Email:', emailData.email);
+        console.log('File Path:', emailData.file_path);
+
+        // Example of reading file content and preparing an attachment
+        const attachment = [{
+          filename: path.basename(emailData.file_path),
+          path: emailData.file_path
+        }];
+
+        // Define the customer email options, including the attachment
+        let mailOptionsCustomer = {
+        from: sellerEmail,
+        to: emailData.email, // list of receivers
+        subject: 'Order Confirmation',
+        text: 'Your order has been confirmed.',
+        attachments: null
+        };
+
+        await sendEmail(mailOptionsCustomer);
+        console.log('Customer email sent successfully');
       
-    // Read the file to be attached
-    const fileContent = fs.readFileSync(file_path);
-    
-    // Define the email options, including the attachment
-    let mailOptions = {
-      from: sellerEmail,
-      to: to, // list of receivers
-      subject: subject,
-      text: text,
-      attachments: [
-          {
-              filename: path.basename(fileContent),
-              content: fileContent,
-          },
-      ],
-  };
 
-      if (customerEmail) {
-        console.log('Customer Email Received');
+        let mailOptionsSeller = {
+        from: sellerEmail,
+        to: sellerEmail, // list of receivers
+        subject: 'Order Confirmation',
+        text: 'You have a new order',
+        attachments: attachment
+        };
 
-        // Send customer email
-        await sendEmail(customerEmail, 'testing customer', 'testing cust body', );
-        // Send seller email
-        await sendEmail(mailOptions);
-        console.log('Message sent: %s', info.messageId);
+      
+        await sendEmail(mailOptionsSeller);
+        console.log('Seller email sent successfully', info.messageId);
+
+      }
+
       } else {
         console.error('Customer email not found for entryid:', entryId)
       }
 
     }
     
-  } catch (error) {
+   catch (error) {
     console.error("Failed to create order:", error);
     res.status(500).json({ error: "Failed to capture order." });
   }
