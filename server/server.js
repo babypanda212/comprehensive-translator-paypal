@@ -259,7 +259,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
         to: emailData.email, // list of receivers
         subject: 'Order Confirmation',
         text: 'Your order has been confirmed.',
-        attachments: null
+        attachments: []
         };
 
         try {
@@ -279,7 +279,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       
         try {
           await sendEmail(mailOptionsSeller);
-          console.log('Seller email sent successfully');
+          console.log('Seller email attempted');
         } catch (error) {
           console.error('Failed to send seller email:', error);          
         }
