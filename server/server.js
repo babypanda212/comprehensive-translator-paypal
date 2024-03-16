@@ -161,7 +161,7 @@ async function fetchForminatorEntryEmail(entryId) {
 let transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com', // Replace with your SMTP host
     port: 587, // Common port for SMTP
-    secure: true, // true for 465, false for other ports
+    secure: false, // true for 465, false for other ports
     auth: {
         user: 'ayeshakhan.mct@gmail.com', // Replace with your SMTP username
         pass: sellerEmail_pass, // Replace with your SMTP password
