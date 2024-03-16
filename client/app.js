@@ -22,11 +22,21 @@ function onClose() {
     }
   }
   
-  function getCookie(name) {
-    let value = `; ${document.cookie}`;
-    let parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+  function getCookieAndDelete(name) {
+    let cookieValue = null;
+    let cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+            cookieValue = cookie.substring((name + '=').length);
+            // Delete the cookie by setting its expiration date to the past
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            break;
+        }
+    }
+    return cookieValue;
 }
+
   async function createOrderCallback() {
     resultMessage("");
     
