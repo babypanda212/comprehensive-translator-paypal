@@ -264,7 +264,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
 
         try {
           await sendEmail(mailOptionsCustomer);
-          console.log('Customer email sent successfully');
+          console.log('Customer email attempted');
         } catch (error) {
           console.error('Failed to send customer email:', error);
         }
@@ -279,7 +279,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       
         try {
           await sendEmail(mailOptionsSeller);
-          console.log('Seller email sent successfully', info.messageId);
+          console.log('Seller email sent successfully');
         } catch (error) {
           console.error('Failed to send seller email:', error);          
         }
