@@ -227,7 +227,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     res.status(httpStatusCode).json(jsonResponse);
 
     // Check if transaction was successful
-    if (httpStatusCode === 200) {
+    if (httpStatusCode === 201) {
       const { id: entryId, price: totalPrice } = req.body.cart[0];
       console.log('EntryID and Price Retrieved');
 
