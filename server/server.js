@@ -232,14 +232,17 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
 
       console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
       
+      //Declaring outside try catch to have larger scope
+      let emailData = null
+
       // Fetch customer email
       try {
-        const emailData = await fetchForminatorEntryEmail(entryId);
-  
+        emailData = await fetchForminatorEntryEmail(entryId);
+        
       } catch (error) {
         console.error('Failed to fetch email data');
       }
-      
+
       if (emailData && emailData.email && emailData.file_path) {
         console.log('Customer Email:', emailData.email);
         console.log('File Path:', emailData.file_path);
