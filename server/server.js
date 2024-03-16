@@ -129,7 +129,6 @@ async function handleResponse(response) {
   }
 }
 
-const fetch = require('node-fetch');
 const base64 = require('base-64');
 
 async function fetchForminatorEntryEmail(entryId) {
