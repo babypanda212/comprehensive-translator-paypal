@@ -37,15 +37,12 @@ function onClose() {
     return cookieValue;
 }
 
+// declaring globally for later use
+let entryId = null
+let totalPrice = null
 
   async function createOrderCallback() {
     resultMessage("");
-    
-  
-  let entryId = getCookieAndDelete('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
-  console.log('entry id is' + entryId);
-  let totalPrice = getCookieAndDelete('total_price'); 
-  console.log('the total price is' + totalPrice)
 
     try {
       const response = await fetch("/app/api/orders", {
