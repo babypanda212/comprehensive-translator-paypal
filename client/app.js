@@ -37,6 +37,7 @@ function onClose() {
     return cookieValue;
 }
 
+
   async function createOrderCallback() {
     resultMessage("");
     
