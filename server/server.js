@@ -5,6 +5,8 @@ import "dotenv/config";
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
 const base = "https://api-m.sandbox.paypal.com";
 const app = express();
+const sellerEmail = "ayeshakhan.mct@gmail.com"
+const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
 
 app.set("view engine", "ejs");
 app.set("views", "./server/views");
@@ -145,10 +147,43 @@ async function fetchForminatorEntryEmail(entryId) {
       });
         if (!response.ok) throw new Error('Failed to fetch email, Status: ${response.status}, ${response.statusText}');
         
-        const { email } = await response.json();
+        const { email : email, file_path : file_path } = await response.json();
         console.log('Email fetched:', email); // Use the email as needed
+        console.log('File path fetched:', file_path);
     } catch (error) {
-      console.error('Error fetching Forminator entry email:', error);
+      console.error('Error fetching Forminator entry email or file path:', error);
+    }
+}
+
+// Email sending functions
+const nodemailer = require('nodemailer');
+
+// Setup email transporter
+let transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com', // Replace with your SMTP host
+    port: 465, // Common port for SMTP
+    secure: true, // true for 465, false for other ports
+    auth: {
+        user: 'ayeshakhan.mct@gmail.com', // Replace with your SMTP username
+        pass: sellerEmail_pass, // Replace with your SMTP password
+    },
+});
+
+// Function to send an email
+async function sendEmail(to, subject, htmlContent, attachments = []) {
+    let mailOptions = {
+        from: sellerEmail, // Sender address
+        to: to, // List of receivers
+        subject: subject, // Subject line
+        html: htmlContent, // HTML body content
+        attachments: attachments, // An array of attachments
+    };
+
+    try {
+        let info = await transporter.sendMail(mailOptions);
+        console.log('Message sent: %s', info.messageId);
+    } catch (error) {
+        console.error('Failed to send email:', error);
     }
 }
 
@@ -190,7 +225,48 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
     const { orderID } = req.params;
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
+    
     res.status(httpStatusCode).json(jsonResponse);
+
+    // Check if transaction was successful
+    if (httpStatusCode === 200) {
+      const { id: entryId, price: totalPrice } = req.body.cart[0];
+      console.log('EntryID and Price Retrieved');
+
+      // Fetch customer email
+      const { customerEmail, file_path } = await fetchForminatorEntryEmail(entryId);
+      
+    // Read the file to be attached
+    const fileContent = fs.readFileSync(file_path);
+    
+    // Define the email options, including the attachment
+    let mailOptions = {
+      from: sellerEmail,
+      to: to, // list of receivers
+      subject: subject,
+      text: text,
+      attachments: [
+          {
+              filename: path.basename(fileContent),
+              content: fileContent,
+          },
+      ],
+  };
+
+      if (customerEmail) {
+        console.log('Customer Email Received');
+
+        // Send customer email
+        await sendEmail(customerEmail, 'testing customer', 'testing cust body', );
+        // Send seller email
+        await sendEmail(mailOptions);
+        console.log('Message sent: %s', info.messageId);
+      } else {
+        console.error('Customer email not found for entryid:', entryId)
+      }
+
+    }
+    
   } catch (error) {
     console.error("Failed to create order:", error);
     res.status(500).json({ error: "Failed to capture order." });
@@ -200,9 +276,6 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Node server listening at http://localhost:${PORT}/`);
 });
-
-// Placeholder for storing webhook payloads indexed by entry ID
-const webhookData = {};
 
 // Endpoint to receive webhook data
 app.post("/api/webhook", async (req, res) => {

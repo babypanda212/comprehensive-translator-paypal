@@ -31,9 +31,9 @@ function onClose() {
     resultMessage("");
     
   
-  let entryId = getCookie('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
+  let entryId = getCookieandDelete('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
   console.log('entry id is' + entryId);
-  let totalPrice = getCookie('total_price'); 
+  let totalPrice = getCookieandDelete('total_price'); 
   console.log('the total price is' + totalPrice)
 
     try {
