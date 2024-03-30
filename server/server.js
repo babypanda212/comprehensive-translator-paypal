@@ -78,7 +78,7 @@ const createOrder = async (totalPrice) => {
       intent: "CAPTURE",
       purchase_units: [{
           amount: {
-              currency_code: "USD",
+              currency_code: "OMR",
               value: totalPrice.toString(), // Ensure totalPrice is a string
           },
       }],
