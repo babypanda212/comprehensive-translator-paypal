@@ -20,7 +20,7 @@ app.use(express.static("client"));
 // parse post params sent in body in json format
 app.use(express.json());
 
-// Import the database connection pool
+// Import the database connection pool cool
 import db from './database'; // Adjust the path to where your database.js file is located
 
 /**
