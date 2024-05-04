@@ -6,6 +6,9 @@ import nodemailer from "nodemailer";
 import path from 'path';
 import { error } from "console";
 
+// Import the database connection pool cool
+import db from './database.js'; // Adjust the path to where your database.js file is located
+
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
 const base = "https://api-m.paypal.com";
 const app = express();
@@ -19,9 +22,6 @@ app.use(express.static("client"));
 
 // parse post params sent in body in json format
 app.use(express.json());
-
-// Import the database connection pool cool
-import db from './database.js'; // Adjust the path to where your database.js file is located
 
 /**
  * Generate an OAuth 2.0 access token for authenticating with PayPal REST APIs.
