@@ -21,7 +21,7 @@ app.use(express.static("client"));
 app.use(express.json());
 
 // Import the database connection pool cool
-import db from './database'; // Adjust the path to where your database.js file is located
+import db from './database.js'; // Adjust the path to where your database.js file is located
 
 /**
  * Generate an OAuth 2.0 access token for authenticating with PayPal REST APIs.
