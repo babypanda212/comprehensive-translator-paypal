@@ -1,6 +1,8 @@
 import express from "express";
 import fetch from "node-fetch";
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
+import { fileURLToPath } from 'url';
 import base64 from 'base-64';
 import nodemailer from "nodemailer";
 import path from 'path';
@@ -16,8 +18,11 @@ const sellerEmail = "ayeshakhan.mct@gmail.com"
 const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
 const formId = 2063
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.set("view engine", "ejs");
-app.set("views", "./server/views");
+app.set("views", path.join(__dirname, "views"));
 app.use(express.static("client"));
 
 // parse post params sent in body in json format
@@ -218,6 +223,10 @@ app.get("/", async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
+});
+
+app.get("/test", (req, res) => {
+  res.render("test");
 });
 
 
