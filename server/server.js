@@ -10,7 +10,7 @@ import { error } from "console";
 import db from './database.js'; // Adjust the path to where your database.js file is located
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
-const base = "https://api-m.paypal.com";
+const base = "https://api-m.sandbox.paypal.com";
 const app = express();
 const sellerEmail = "ayeshakhan.mct@gmail.com"
 const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
