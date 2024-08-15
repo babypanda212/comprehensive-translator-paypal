@@ -6,11 +6,15 @@ import nodemailer from "nodemailer";
 import path from 'path';
 import { error } from "console";
 
+// Import the database connection pool cool
+import db from './database.js'; // Adjust the path to where your database.js file is located
+
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
-const base = "https://api-m.sandbox.paypal.com";
+const base = "https://api-m.paypal.com";
 const app = express();
 const sellerEmail = "ayeshakhan.mct@gmail.com"
 const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
+const formId = 2063
 
 app.set("view engine", "ejs");
 app.set("views", "./server/views");
@@ -191,6 +195,17 @@ async function sendEmail(mailOptions) {
     }
 }
 
+async function updatePaymentStatus(entryId, status) {
+  const sql = `UPDATE wp_frmt_form_entry_meta SET meta_value = ? WHERE entry_id = ? AND meta_key = 'hidden-1'`;
+  try {
+      const [result] = await db.query(sql, [status, entryId]);
+      console.log('Payment status updated successfully:', result);
+  } catch (error) {
+      console.error('Error updating payment status:', error);
+  }
+}
+
+
 
 // render checkout page with client id & unique client token
 app.get("/", async (req, res) => {
@@ -232,6 +247,7 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
+
 app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
     const { orderID } = req.params;
@@ -249,6 +265,9 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       const { id: entryId, price: totalPrice } = req.body.cart[0];
 
       console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
+      
+      // Update payment status
+      await updatePaymentStatus(entryId, 'paid');
       
       //Declaring outside try catch to have larger scope
       let emailData = null
