@@ -212,6 +212,13 @@ app.post("/api/orders", async (req, res) => {
       // Assuming the first item in the cart contains the necessary details
       const { id: entryId, price: totalPrice } = req.body.cart[0];
 
+      // Check if entryId or totalPrice is missing
+      if (!entryId || !totalPrice) {
+        console.error("Missing entryId or totalPrice");
+        res.status(400).json({ error: "Invalid order data." });
+        return;
+      }      
+
       console.log(`Creating order for entryId ${entryId} with totalPrice ${totalPrice}`);
 
       // Proceed to create the order with the provided totalPrice
@@ -231,6 +238,12 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
+    // Check if entryId or totalPrice is missing
+    if (!entryId || !totalPrice) {
+      console.error("Missing entryId or totalPrice");
+      return res.status(400).json({ error: "Invalid order data." });
+    }
+    
     // Check if transaction was successful
     if (httpStatusCode === 201) {
       const { id: entryId, price: totalPrice } = req.body.cart[0];
