@@ -211,6 +211,22 @@ async function updatePaymentStatus(entryId, status) {
 }
 
 
+// Function to retrieve the price from the database
+async function getPriceForEntry(entryId) {
+  const sql = `SELECT meta_value FROM wp_frmt_form_entry_meta WHERE entry_id = ? AND meta_key = 'calculated_price'`;
+  try {
+      const [rows] = await db.query(sql, [entryId]);
+      if (rows.length > 0) {
+          return parseFloat(rows[0].meta_value); // Convert to float
+      } else {
+          throw new Error('Price not found for the given entry ID');
+      }
+  } catch (error) {
+      console.error('Error retrieving price:', error);
+      throw error;
+  }
+}
+
 
 // render checkout page with client id & unique client token
 app.get("/", async (req, res) => {
@@ -230,31 +246,31 @@ app.get("/test", (req, res) => {
 });
 
 
-// /api/orders route handler
-app.post("/api/orders", async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
-      // Assuming the first item in the cart contains the necessary details
-      const { id: entryId, price: totalPrice } = req.body.cart[0];
+      const { entryId } = req.body;
 
-      // Check if entryId or totalPrice is missing
-      if (!entryId || !totalPrice) {
-        console.error("Missing entryId or totalPrice");
-        res.status(400).json({ error: "Invalid order data." });
-        return;
-      }      
+      // Retrieve the price for the entry ID from the database
+      const totalPrice = await getPriceForEntry(entryId);
 
-      console.log(`Creating order for entryId ${entryId} with totalPrice ${totalPrice}`);
+      // Check if the price was successfully retrieved
+      if (!totalPrice) {
+          throw new Error('Price could not be retrieved for the entry.');
+      }
 
-      // Proceed to create the order with the provided totalPrice
+      console.log('Price retrieved:', totalPrice);
+
+      // Proceed to create the order with the retrieved price
       const { jsonResponse, httpStatusCode } = await createOrder(totalPrice);
 
       // Respond with the result of the order creation
       res.status(httpStatusCode).json(jsonResponse);
   } catch (error) {
-      console.error("Failed to create order:", error);
-      res.status(500).json({ error: "Failed to create order." });
+      console.error('Failed to create order:', error);
+      res.status(500).json({ error: 'Failed to create order.' });
   }
 });
+
 
 
 app.post("/api/orders/:orderID/capture", async (req, res) => {
