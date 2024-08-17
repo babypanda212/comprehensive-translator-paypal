@@ -214,15 +214,9 @@ async function updatePaymentStatus(entryId, status) {
 async function getPriceForToken(token) {
   try {
       // Query the database to retrieve the entryId and totalPrice using the secureToken
-      const sql = `SELECT entry_id, meta_value as totalPrice 
+      const sql = `SELECT entry_id, calculated_price as totalPrice 
                    FROM wp_custom_form_data 
-                   WHERE meta_key = 'calculated_price' 
-                   AND entry_id = (
-                       SELECT entry_id 
-                       FROM wp_frmt_form_entry_meta 
-                       WHERE meta_key = 'secure_token' 
-                       AND meta_value = ?
-                   ) LIMIT 1`;
+                   WHERE secure_token = ? LIMIT 1`;
 
       const [rows] = await db.execute(sql, [token]);
 
@@ -279,6 +273,8 @@ app.post("/api/orders", async (req, res) => {
           console.error('Invalid token or no data found.');
           return res.status(400).json({ error: 'Invalid token or no data found.' });
       }
+
+      console.log('Successfully retrieved data:', { entryId, totalPrice });
 
       const { jsonResponse, httpStatusCode } = await createOrder(totalPrice);
       res.status(httpStatusCode).json(jsonResponse);
