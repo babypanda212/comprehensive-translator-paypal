@@ -211,14 +211,35 @@ async function updatePaymentStatus(entryId, status) {
 }
 
 
-async function getPriceForToken(secureToken) {
-  const sql = "SELECT entry_id, calculated_price FROM wp_custom_form_data WHERE secure_token = ?";
-  const [rows] = await db.query(sql, [secureToken]);
+async function getPriceForToken(token) {
+  try {
+      // Query the database to retrieve the entryId and totalPrice using the secureToken
+      const sql = `SELECT entry_id, meta_value as totalPrice 
+                   FROM wp_custom_form_data 
+                   WHERE meta_key = 'calculated_price' 
+                   AND entry_id = (
+                       SELECT entry_id 
+                       FROM wp_frmt_form_entry_meta 
+                       WHERE meta_key = 'secure_token' 
+                       AND meta_value = ?
+                   ) LIMIT 1`;
 
-  if (rows.length > 0) {
-      return rows[0];
-  } else {
-      throw new Error("Price not found for the given token");
+      const [rows] = await db.execute(sql, [token]);
+
+      if (rows.length === 0) {
+          console.error('No matching entry found for the given token:', token);
+          return { entryId: null, totalPrice: null };
+      }
+
+      console.log('Retrieved data for token:', token, 'Data:', rows[0]);
+
+      const entryId = rows[0].entry_id;
+      const totalPrice = rows[0].totalPrice;
+
+      return { entryId, totalPrice };
+  } catch (error) {
+      console.error('Error retrieving price:', error);
+      throw new Error('Price not found for the given token');
   }
 }
 
