@@ -35,10 +35,6 @@ function onClose() {
     return cookieValue;
 }
 
-// Logging for debugging
-console.log('retrieved cookie, entry id is' + entryId);
-console.log('retrieved cookie, the total price is' + totalPrice);
-
 async function createOrderCallback() {
   resultMessage("");
 
