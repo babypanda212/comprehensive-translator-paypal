@@ -212,7 +212,7 @@ async function updatePaymentStatus(entryId, status) {
 
 
 async function getPriceForToken(secureToken) {
-  const sql = "SELECT entry_id, calculated_price FROM wp_secure_order_data WHERE secure_token = ?";
+  const sql = "SELECT entry_id, calculated_price FROM wp_custom_form_data WHERE secure_token = ?";
   const [rows] = await db.query(sql, [secureToken]);
 
   if (rows.length > 0) {
