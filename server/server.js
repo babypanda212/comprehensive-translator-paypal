@@ -243,15 +243,16 @@ app.get("/test", (req, res) => {
 
 
 app.post("/api/orders", async (req, res) => {
-  const { token } = req.body;
+  const { secureToken } = req.body;
+  console.log("Received secure token:", secureToken);
 
-  if (!token) {
+  if (!secureToken) {
       console.error('Secure token is missing.');
       return res.status(400).json({ error: 'Secure token is missing.' });
   }
 
   try {
-      const { entryId, totalPrice } = await getPriceForToken(token); // Query the database with the token
+      const { entryId, totalPrice } = await getPriceForToken(secureToken); // Query the database with the token
 
       if (!entryId || !totalPrice) {
           console.error('Invalid token or no data found.');
