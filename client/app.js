@@ -74,78 +74,94 @@ async function createOrderCallback() {
 
 
   
-  async function onApproveCallback(orderId) {
-    console.log("orderId", orderId);
-  
-    const threedsElement = document.getElementById("threeds");
-    threedsElement.innerHTML = "";
-  
-    try {
+async function onApproveCallback(orderId) {
+  console.log("orderId", orderId);
+
+  // Retrieve the secure token from the cookies
+  const secureToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('secure_token='))
+      ?.split('=')[1];
+
+  if (!secureToken) {
+      console.error('Secure token is missing.');
+      return;
+  }
+
+  console.log("Retrieved secure token:", secureToken);
+
+  const threedsElement = document.getElementById("threeds");
+  threedsElement.innerHTML = "";
+
+  try {
       const response = await fetch(`/app/api/orders/${orderId}/capture`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cart: [
-            {
-              price: totalPrice
-            },
-          ],
-        }),
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              secureToken, // Pass the secure token in the request body
+              cart: [
+                  {
+                      price: totalPrice // Assuming totalPrice is defined elsewhere in your script
+                  },
+              ],
+          }),
       });
-  
+
       const orderData = await response.json();
+
       // Three cases to handle:
       //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
       //   (2) Other non-recoverable errors -> Show a failure message
       //   (3) Successful transaction -> Show confirmation or thank you message
-  
+
       const transaction =
-        orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
-        orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
+          orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
+          orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
       const errorDetail = orderData?.details?.[0];
-  
+
       // this actions.restart() behavior only applies to the Buttons component
       if (errorDetail?.issue === "INSTRUMENT_DECLINED" && !data.card && actions) {
-        // (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-        // recoverable state, per https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
-        return actions.restart();
+          // (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
+          // recoverable state, per https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
+          return actions.restart();
       } else if (
-        errorDetail ||
-        !transaction ||
-        transaction.status === "DECLINED"
+          errorDetail ||
+          !transaction ||
+          transaction.status === "DECLINED"
       ) {
-        // (2) Other non-recoverable errors -> Show a failure message
-        let errorMessage;
-        if (transaction) {
-          errorMessage = `Transaction ${transaction.status}: ${transaction.id}`;
-        } else if (errorDetail) {
-          errorMessage = `${errorDetail.description} (${orderData.debug_id})`;
-        } else {
-          errorMessage = JSON.stringify(orderData);
-        }
-  
-        throw new Error(errorMessage);
+          // (2) Other non-recoverable errors -> Show a failure message
+          let errorMessage;
+          if (transaction) {
+              errorMessage = `Transaction ${transaction.status}: ${transaction.id}`;
+          } else if (errorDetail) {
+              errorMessage = `${errorDetail.description} (${orderData.debug_id})`;
+          } else {
+              errorMessage = JSON.stringify(orderData);
+          }
+
+          throw new Error(errorMessage);
       } else {
-        // (3) Successful transaction -> Show confirmation or thank you message
-        // Or go to another URL:  actions.redirect('thank_you.html');
-        resultMessage(
-          `Transaction ${transaction.status}: ${transaction.id}<br><br>See console for all available details`,
-        );
-        console.log(
-          "Capture result",
-          orderData,
-          JSON.stringify(orderData, null, 2),
-        );
+          // (3) Successful transaction -> Show confirmation or thank you message
+          // Or go to another URL:  actions.redirect('thank_you.html');
+          resultMessage(
+              `Transaction ${transaction.status}: ${transaction.id}<br><br>See console for all available details`,
+          );
+          console.log(
+              "Capture result",
+              orderData,
+              JSON.stringify(orderData, null, 2),
+          );
       }
-    } catch (error) {
+  } catch (error) {
       console.error(error);
       resultMessage(
-        `Sorry, your transaction could not be processed...<br><br>${error}`,
+          `Sorry, your transaction could not be processed...<br><br>${error}`,
       );
-    }
   }
+}
+
   
   window.paypal
     .Buttons({

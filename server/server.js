@@ -290,31 +290,46 @@ app.post("/api/orders", async (req, res) => {
 app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
     const { orderID } = req.params;
+    const { secureToken } = req.body;
+
+    // Check if the secure token is missing
+    if (!secureToken) {
+      console.error("Secure token is missing.");
+      return res.status(400).json({ error: "Secure token is missing." });
+    }
+
+    console.log("Received secure token:", secureToken);
+
+    // Fetch entryId and totalPrice using the secureToken
+    let entryId, totalPrice;
+    try {
+      ({ entryId, totalPrice } = await getPriceForToken(secureToken)); // Query the database with the token
+      if (!entryId || !totalPrice) {
+        console.error("Invalid token or no data found.");
+        return res.status(400).json({ error: "Invalid token or no data found." });
+      }
+    } catch (error) {
+      console.error("Failed to retrieve data for the token:", error);
+      return res.status(500).json({ error: "Failed to retrieve order data." });
+    }
+
+    // Capture the order via PayPal
     const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
     console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
-    // Check if entryId or totalPrice is missing
-    if (!entryId || !totalPrice) {
-      console.error("Missing entryId or totalPrice");
-      return res.status(400).json({ error: "Invalid order data." });
-    }
-    
     // Check if transaction was successful
     if (httpStatusCode === 201) {
-      const { id: entryId, price: totalPrice } = req.body.cart[0];
-
       console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
-      
+
       // Update payment status
       await updatePaymentStatus(entryId, 'paid');
-      
-      //Declaring outside try catch to have larger scope
-      let emailData = null
+
+      // Declaring outside try catch to have larger scope
+      let emailData = null;
 
       // Fetch customer email
       try {
         emailData = await fetchForminatorEntryEmail(entryId);
-        
       } catch (error) {
         console.error('Failed to fetch email data');
       }
@@ -331,56 +346,55 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
 
         // Define the customer email options, including the attachment
         let mailOptionsCustomer = {
-        from: sellerEmail,
-        to: emailData.email, // list of receivers
-        subject: 'Order Confirmation',
-        text: 'Your order has been confirmed.'
+          from: sellerEmail,
+          to: emailData.email, // list of receivers
+          subject: 'Order Confirmation',
+          text: 'Your order has been confirmed.'
         };
 
-        
-        console.log('the data being passed for customer email', mailOptionsCustomer)
+        console.log('The data being passed for customer email', mailOptionsCustomer);
 
         try {
           await sendEmail(mailOptionsCustomer);
-          console.log('Customer email attempted');
+          console.log('Customer email sent.');
         } catch (error) {
           console.error('Failed to send customer email:', error);
         }
-        
-        let mailOptionsSeller = {
-        from: sellerEmail,
-        to: sellerEmail, // list of receivers
-        subject: 'Order Confirmation',
-        text: 'You have a new order',
-        attachments: attachment
-        };
-        
 
-        console.log('the data being passed for seller email', mailOptionsSeller)
+        let mailOptionsSeller = {
+          from: sellerEmail,
+          to: sellerEmail, // list of receivers
+          subject: 'Order Confirmation',
+          text: 'You have a new order',
+          attachments: attachment
+        };
+
+        console.log('The data being passed for seller email', mailOptionsSeller);
 
         try {
           await sendEmail(mailOptionsSeller);
-          console.log('Seller email attempted');
+          console.log('Seller email sent.');
         } catch (error) {
-          console.error('Failed to send seller email:', error);          
+          console.error('Failed to send seller email:', error);
         }
 
-      }
-
       } else {
-        console.error('Customer email not found for entryid:', entryId);
+        console.error('Customer email not found for entryId:', entryId);
       }
 
       res.status(httpStatusCode).json(jsonResponse);
 
-
+    } else {
+      console.error("Failed to capture the transaction.");
+      res.status(httpStatusCode).json({ error: "Failed to capture transaction." });
     }
-    
-   catch (error) {
-    console.error("Failed to create order:", error);
+
+  } catch (error) {
+    console.error("Failed to capture order:", error);
     res.status(500).json({ error: "Failed to capture order." });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Node server listening at http://localhost:${PORT}/`);
