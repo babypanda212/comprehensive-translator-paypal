@@ -211,18 +211,14 @@ async function updatePaymentStatus(entryId, status) {
 }
 
 
-async function getPriceForToken(token) {
-  const sql = `SELECT entry_id, meta_value FROM wp_frmt_form_entry_meta WHERE meta_key = 'calculated_price' AND secure_token = ?`;
-  try {
-      const [result] = await db.query(sql, [token]);
-      if (result.length > 0) {
-          return { entryId: result[0].entry_id, totalPrice: result[0].meta_value };
-      } else {
-          throw new Error('Price not found for the given token');
-      }
-  } catch (error) {
-      console.error('Error retrieving price:', error);
-      throw error;
+async function getPriceForToken(secureToken) {
+  const sql = "SELECT entry_id, calculated_price FROM wp_secure_order_data WHERE secure_token = ?";
+  const [rows] = await db.query(sql, [secureToken]);
+
+  if (rows.length > 0) {
+      return rows[0];
+  } else {
+      throw new Error("Price not found for the given token");
   }
 }
 
