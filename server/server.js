@@ -215,9 +215,13 @@ async function updatePaymentStatus(entryId, status) {
 async function getPriceForEntry(entryId) {
   const sql = `SELECT meta_value FROM wp_frmt_form_entry_meta WHERE entry_id = ? AND meta_key = 'calculated_price'`;
   try {
+      console.log(`Executing query: ${sql} with entryId: ${entryId}`);
       const [rows] = await db.query(sql, [entryId]);
+      console.log(`Query result:`, rows);
       if (rows.length > 0) {
-          return parseFloat(rows[0].meta_value); // Convert to float
+          const price = parseFloat(rows[0].meta_value);
+          console.log(`Retrieved price for entryId ${entryId}: ${price}`);
+          return price;
       } else {
           throw new Error('Price not found for the given entry ID');
       }
@@ -226,6 +230,7 @@ async function getPriceForEntry(entryId) {
       throw error;
   }
 }
+
 
 
 // render checkout page with client id & unique client token
