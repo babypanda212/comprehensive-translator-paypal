@@ -46,31 +46,22 @@ console.log('retrieved cookie, the total price is' + totalPrice);
 async function createOrderCallback() {
   resultMessage("");
 
-  entryId = getCookieAndDelete('form_submission_uid'); // Retrieve and delete the entry ID cookie
-  console.log('retrieved cookie, entry id is' + entryId);
-  
-  totalPrice = getCookieAndDelete('total_price'); // Retrieve and delete the total price cookie
-  console.log('retrieved cookie, the total price is' + totalPrice);
+  const secureToken = getCookie('secure_token'); // Retrieve the secure token
+  console.log('retrieved secure token:', secureToken);
 
-  if (!entryId || !totalPrice) {
-      console.error("Entry ID or total price is missing.");
-      resultMessage("Entry ID or total price is missing.");
-      return; // Exit if entryId or totalPrice is not found
+  if (!secureToken) {
+      console.error('Secure token is missing.');
+      throw new Error('Secure token is missing.');
   }
 
   try {
-      const response = await fetch("/app/api/orders", {
+      const response = await fetch(`/app/api/orders`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
           },
           body: JSON.stringify({
-              cart: [
-                  {
-                      id: entryId,
-                      price: totalPrice
-                  },
-              ],
+              token: secureToken, // Send the secure token to the server
           }),
       });
 
@@ -91,6 +82,7 @@ async function createOrderCallback() {
       resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
   }
 }
+
 
   
   async function onApproveCallback(orderId) {
