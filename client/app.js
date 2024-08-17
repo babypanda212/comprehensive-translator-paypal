@@ -89,7 +89,6 @@ async function createOrderCallback() {
         body: JSON.stringify({
           cart: [
             {
-              id: entryId,
               price: totalPrice
             },
           ],
