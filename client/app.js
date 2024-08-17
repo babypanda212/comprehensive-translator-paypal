@@ -101,11 +101,6 @@ async function onApproveCallback(orderId) {
           },
           body: JSON.stringify({
               secureToken, // Pass the secure token in the request body
-              cart: [
-                  {
-                      price: totalPrice // Assuming totalPrice is defined elsewhere in your script
-                  },
-              ],
           }),
       });
 
