@@ -38,23 +38,20 @@ function onClose() {
 async function createOrderCallback() {
   resultMessage("");
 
-  const secureToken = getCookie('secure_token'); // Retrieve the secure token
+  const secureToken = getCookie('secure_token'); // Use this token to fetch data
   console.log('retrieved secure token:', secureToken);
 
   if (!secureToken) {
-      console.error('Secure token is missing.');
-      throw new Error('Secure token is missing.');
+      throw new Error("No secure token found.");
   }
 
   try {
-      const response = await fetch(`/app/api/orders`, {
+      const response = await fetch("/app/api/orders", {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-              token: secureToken, // Send the secure token to the server
-          }),
+          body: JSON.stringify({ secureToken }), // Pass secureToken in the request body
       });
 
       const orderData = await response.json();
