@@ -250,10 +250,14 @@ app.post('/api/orders', async (req, res) => {
   try {
       const { entryId } = req.body;
 
+      if (!entryId) {
+          console.error('Missing entryId or totalPrice');
+          return res.status(400).json({ error: 'Entry ID is missing.' });
+      }
+
       // Retrieve the price for the entry ID from the database
       const totalPrice = await getPriceForEntry(entryId);
 
-      // Check if the price was successfully retrieved
       if (!totalPrice) {
           throw new Error('Price could not be retrieved for the entry.');
       }
@@ -263,13 +267,13 @@ app.post('/api/orders', async (req, res) => {
       // Proceed to create the order with the retrieved price
       const { jsonResponse, httpStatusCode } = await createOrder(totalPrice);
 
-      // Respond with the result of the order creation
       res.status(httpStatusCode).json(jsonResponse);
   } catch (error) {
       console.error('Failed to create order:', error);
       res.status(500).json({ error: 'Failed to create order.' });
   }
 });
+
 
 
 
