@@ -22,69 +22,69 @@ function onClose() {
     }
   }
   
-  function getCookieAndDelete(name) {
+  function getCookie(name) {
     let cookieValue = null;
     let cookies = document.cookie.split(';');
     for (let i = 0; i < cookies.length; i++) {
         let cookie = cookies[i].trim();
         if (cookie.startsWith(name + '=')) {
             cookieValue = cookie.substring((name + '=').length);
-            // Delete the cookie by setting its expiration date to the past
-            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             break;
         }
     }
     return cookieValue;
 }
 
-// declaring globallly for later use
-let entryId = null
-let totalPrice = null
+// Remove deletion of cookies for more flexibility
+let entryId = getCookie('form_submission_uid');
+let totalPrice = getCookie('total_price');
 
+// Logging for debugging
+console.log('retrieved cookie, entry id is' + entryId);
+console.log('retrieved cookie, the total price is' + totalPrice);
 
-  async function createOrderCallback() {
+async function createOrderCallback() {
     resultMessage("");
-    
-  entryId = getCookieAndDelete('form_submission_uid'); // Use this entry ID as needed PLEASE CHECK WHERRE THIS LINE SHOULD GO 
-  console.log('retrieved cookie, entry id is' + entryId);
-  totalPrice = getCookieAndDelete('total_price'); 
-  console.log('retrieved cookie, the total price is' + totalPrice)
+
+    // Check if entryId and totalPrice are available
+    if (!entryId || !totalPrice) {
+        console.error("Missing entryId or totalPrice");
+        return;
+    }
 
     try {
-      const response = await fetch("/app/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // use the "body" param to optionally pass additional order information
-        // like product ids and quantities
-        body: JSON.stringify({
-          cart: [
-            {
-              id: entryId,
-              price: totalPrice
+        const response = await fetch("/app/api/orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
-          ],
-        }),
-      });
-  
-      const orderData = await response.json();
-  
-      if (orderData.id) {
-        return orderData.id;
-      } else {
-        const errorDetail = orderData?.details?.[0];
-        const errorMessage = errorDetail
-          ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
-          : JSON.stringify(orderData);
-  
-        throw new Error(errorMessage);
-      }
+            body: JSON.stringify({
+                cart: [
+                    {
+                        id: entryId,
+                        price: totalPrice
+                    },
+                ],
+            }),
+        });
+
+        const orderData = await response.json();
+
+        if (orderData.id) {
+            return orderData.id;
+        } else {
+            const errorDetail = orderData?.details?.[0];
+            const errorMessage = errorDetail
+                ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
+                : JSON.stringify(orderData);
+
+            throw new Error(errorMessage);
+        }
     } catch (error) {
-      console.error(error);
-      resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
+        console.error(error);
+        resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
     }
-  }
+}
   
   async function onApproveCallback(orderId) {
     console.log("orderId", orderId);
