@@ -44,47 +44,54 @@ console.log('retrieved cookie, entry id is' + entryId);
 console.log('retrieved cookie, the total price is' + totalPrice);
 
 async function createOrderCallback() {
-    resultMessage("");
+  resultMessage("");
 
-    // Check if entryId and totalPrice are available
-    if (!entryId || !totalPrice) {
-        console.error("Missing entryId or totalPrice");
-        return;
-    }
+  entryId = getCookieAndDelete('form_submission_uid'); // Retrieve and delete the entry ID cookie
+  console.log('retrieved cookie, entry id is' + entryId);
+  
+  totalPrice = getCookieAndDelete('total_price'); // Retrieve and delete the total price cookie
+  console.log('retrieved cookie, the total price is' + totalPrice);
 
-    try {
-        const response = await fetch("/app/api/orders", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                cart: [
-                    {
-                        id: entryId,
-                        price: totalPrice
-                    },
-                ],
-            }),
-        });
+  if (!entryId || !totalPrice) {
+      console.error("Entry ID or total price is missing.");
+      resultMessage("Entry ID or total price is missing.");
+      return; // Exit if entryId or totalPrice is not found
+  }
 
-        const orderData = await response.json();
+  try {
+      const response = await fetch("/app/api/orders", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              cart: [
+                  {
+                      id: entryId,
+                      price: totalPrice
+                  },
+              ],
+          }),
+      });
 
-        if (orderData.id) {
-            return orderData.id;
-        } else {
-            const errorDetail = orderData?.details?.[0];
-            const errorMessage = errorDetail
-                ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
-                : JSON.stringify(orderData);
+      const orderData = await response.json();
 
-            throw new Error(errorMessage);
-        }
-    } catch (error) {
-        console.error(error);
-        resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
-    }
+      if (orderData.id) {
+          return orderData.id;
+      } else {
+          const errorDetail = orderData?.details?.[0];
+          const errorMessage = errorDetail
+              ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
+              : JSON.stringify(orderData);
+
+          throw new Error(errorMessage);
+      }
+  } catch (error) {
+      console.error(error);
+      resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
+  }
 }
+
   
   async function onApproveCallback(orderId) {
     console.log("orderId", orderId);
