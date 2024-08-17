@@ -211,19 +211,14 @@ async function updatePaymentStatus(entryId, status) {
 }
 
 
-// Function to retrieve the price from the database
-async function getPriceForEntry(entryId) {
-  const sql = `SELECT meta_value FROM wp_frmt_form_entry_meta WHERE entry_id = ? AND meta_key = 'calculated_price'`;
+async function getPriceForToken(token) {
+  const sql = `SELECT entry_id, meta_value FROM wp_frmt_form_entry_meta WHERE meta_key = 'calculated_price' AND secure_token = ?`;
   try {
-      console.log(`Executing query: ${sql} with entryId: ${entryId}`);
-      const [rows] = await db.query(sql, [entryId]);
-      console.log(`Query result:`, rows);
-      if (rows.length > 0) {
-          const price = parseFloat(rows[0].meta_value);
-          console.log(`Retrieved price for entryId ${entryId}: ${price}`);
-          return price;
+      const [result] = await db.query(sql, [token]);
+      if (result.length > 0) {
+          return { entryId: result[0].entry_id, totalPrice: result[0].meta_value };
       } else {
-          throw new Error('Price not found for the given entry ID');
+          throw new Error('Price not found for the given token');
       }
   } catch (error) {
       console.error('Error retrieving price:', error);
@@ -251,34 +246,30 @@ app.get("/test", (req, res) => {
 });
 
 
-app.post('/api/orders', async (req, res) => {
+app.post("/api/orders", async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+      console.error('Secure token is missing.');
+      return res.status(400).json({ error: 'Secure token is missing.' });
+  }
+
   try {
-      const { entryId } = req.body;
+      const { entryId, totalPrice } = await getPriceForToken(token); // Query the database with the token
 
-      if (!entryId) {
-          console.error('Missing entryId or totalPrice');
-          return res.status(400).json({ error: 'Entry ID is missing.' });
+      if (!entryId || !totalPrice) {
+          console.error('Invalid token or no data found.');
+          return res.status(400).json({ error: 'Invalid token or no data found.' });
       }
 
-      // Retrieve the price for the entry ID from the database
-      const totalPrice = await getPriceForEntry(entryId);
-
-      if (!totalPrice) {
-          throw new Error('Price could not be retrieved for the entry.');
-      }
-
-      console.log('Price retrieved:', totalPrice);
-
-      // Proceed to create the order with the retrieved price
       const { jsonResponse, httpStatusCode } = await createOrder(totalPrice);
-
       res.status(httpStatusCode).json(jsonResponse);
+
   } catch (error) {
       console.error('Failed to create order:', error);
       res.status(500).json({ error: 'Failed to create order.' });
   }
 });
-
 
 
 

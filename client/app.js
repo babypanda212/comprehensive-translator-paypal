@@ -35,10 +35,6 @@ function onClose() {
     return cookieValue;
 }
 
-// Remove deletion of cookies for more flexibility
-let entryId = getCookie('form_submission_uid');
-let totalPrice = getCookie('total_price');
-
 // Logging for debugging
 console.log('retrieved cookie, entry id is' + entryId);
 console.log('retrieved cookie, the total price is' + totalPrice);
