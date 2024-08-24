@@ -378,7 +378,11 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
       // Store the transaction ID regardless of status
-      const transactionId = jsonResponse.id;
+      const transaction =
+        jsonResponse?.purchase_units?.[0]?.payments?.captures?.[0] ||
+        jsonResponse?.purchase_units?.[0]?.payments?.authorizations?.[0];
+      const transactionId = transaction?.id;
+      
       await storeTransactionId(entryId, transactionId);
 
       // Check if transaction was successful
