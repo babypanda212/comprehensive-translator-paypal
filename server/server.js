@@ -49,9 +49,16 @@ const generateAccessToken = async () => {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error generating access token:", data);
+      throw new Error(data.error || "Failed to generate access token");
+    }
+
     return data.access_token;
   } catch (error) {
     console.error("Failed to generate Access Token:", error);
+    throw error;
   }
 };
 
@@ -93,16 +100,26 @@ const createOrder = async (totalPrice) => {
       }],
   };
 
-  const response = await fetch(url, {
-      headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-      },
-      method: "POST",
-      body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch(url, {
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+        },
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
 
-  return handleResponse(response);
+    if (!response.ok) {
+      console.error("Error creating PayPal order:", await response.json());
+      throw new Error(`Failed to create PayPal order: ${response.status} - ${response.statusText}`);
+    }
+
+    return handleResponse(response);
+  } catch (error) {
+    console.error("Failed to create order with PayPal:", error);
+    throw error;
+  }
 };
 
 /**
@@ -113,20 +130,25 @@ const captureOrder = async (orderID) => {
   const accessToken = await generateAccessToken();
   const url = `${base}/v2/checkout/orders/${orderID}/capture`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      // Uncomment one of these to force an error for negative testing (in sandbox mode only). Documentation:
-      // https://developer.paypal.com/tools/sandbox/negative-testing/request-headers/
-      // "PayPal-Mock-Response": '{"mock_application_codes": "INSTRUMENT_DECLINED"}'
-      // "PayPal-Mock-Response": '{"mock_application_codes": "TRANSACTION_REFUSED"}'
-      // "PayPal-Mock-Response": '{"mock_application_codes": "INTERNAL_SERVER_ERROR"}'
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
-  return handleResponse(response);
+    if (!response.ok) {
+      console.error("Error capturing PayPal order:", await response.json());
+      throw new Error(`Failed to capture PayPal order: ${response.status} - ${response.statusText}`);
+    }
+
+    return handleResponse(response);
+  } catch (error) {
+    console.error("Failed to capture order with PayPal:", error);
+    throw error;
+  }
 };
 
 async function handleResponse(response) {
@@ -138,6 +160,7 @@ async function handleResponse(response) {
     };
   } catch (err) {
     const errorMessage = await response.text();
+    console.error("Error handling PayPal response:", errorMessage);
     throw new Error(errorMessage);
   }
 }
@@ -158,13 +181,12 @@ async function fetchForminatorEntryEmail(entryId) {
         if (!response.ok) throw new Error(`Failed to fetch email, Status: ${response.status}, ${response.statusText}`);
         
         const data = await response.json();
-    return data; // This should include both email and file_path
-  } catch (error) {
-    console.error('Error fetching Forminator entry email or file path:', error);
-    return null;
-  }
+        return data; // This should include both email and file_path
+    } catch (error) {
+        console.error('Error fetching Forminator entry email or file path:', error);
+        return null;
+    }
 }
-
 
 // Setup email transporter
 let transporter = nodemailer.createTransport({
@@ -210,7 +232,6 @@ async function updatePaymentStatus(entryId, status) {
   }
 }
 
-
 async function getPriceForToken(token) {
   try {
       // Query the database to retrieve the entryId and totalPrice using the secureToken
@@ -237,8 +258,6 @@ async function getPriceForToken(token) {
   }
 }
 
-
-
 // render checkout page with client id & unique client token
 app.get("/", async (req, res) => {
   try {
@@ -248,6 +267,7 @@ app.get("/", async (req, res) => {
       clientToken: jsonResponse.client_token,
     });
   } catch (err) {
+    console.error('Failed to render checkout page:', err.message);
     res.status(500).send(err.message);
   }
 });
@@ -255,7 +275,6 @@ app.get("/", async (req, res) => {
 app.get("/test", (req, res) => {
   res.render("test");
 });
-
 
 app.post("/api/orders", async (req, res) => {
   const { secureToken } = req.body;
@@ -280,12 +299,10 @@ app.post("/api/orders", async (req, res) => {
       res.status(httpStatusCode).json(jsonResponse);
 
   } catch (error) {
-      console.error('Failed to create order:', error);
+      console.error('Failed to create order:', error.message);
       res.status(500).json({ error: 'Failed to create order.' });
   }
 });
-
-
 
 app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
@@ -331,7 +348,7 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       try {
         emailData = await fetchForminatorEntryEmail(entryId);
       } catch (error) {
-        console.error('Failed to fetch email data');
+        console.error('Failed to fetch email data:', error);
       }
 
       if (emailData && emailData.email && emailData.file_path) {
@@ -390,11 +407,10 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Failed to capture order:", error);
+    console.error("Failed to capture order:", error.message);
     res.status(500).json({ error: "Failed to capture order." });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Node server listening at http://localhost:${PORT}/`);
