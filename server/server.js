@@ -269,6 +269,39 @@ async function getPriceForToken(token) {
   }
 }
 
+// store transactionid for pending payments
+// Store transaction id for pending payments in the "hidden-2" meta key
+async function storeTransactionId(entryId, transactionId) {
+  const sql = `
+    INSERT INTO wp_frmt_form_entry_meta (entry_id, meta_key, meta_value) 
+    VALUES (?, 'hidden-2', ?) 
+    ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)
+  `;
+  try {
+    await db.query(sql, [entryId, transactionId]);
+    console.log('Transaction ID stored successfully in hidden-2.');
+  } catch (error) {
+    console.error('Error storing transaction ID:', error);
+  }
+}
+
+
+// retrieve entryid to update paymenet status when webhook from paypal received
+async function getEntryIdByTransactionId(transactionId) {
+  const sql = `SELECT entry_id FROM wp_frmt_form_entry_meta WHERE meta_key = 'transaction_id' AND meta_value = ? LIMIT 1`;
+  try {
+    const [rows] = await db.query(sql, [transactionId]);
+    if (rows.length > 0) {
+      return rows[0].entry_id;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching entry by transaction ID:', error);
+    return null;
+  }
+}
+
+
 // render checkout page with client id & unique client token
 app.get("/", async (req, res) => {
   try {
@@ -317,109 +350,113 @@ app.post("/api/orders", async (req, res) => {
 
 app.post("/api/orders/:orderID/capture", async (req, res) => {
   try {
-    const { orderID } = req.params;
-    const { secureToken } = req.body;
+      const { orderID } = req.params;
+      const { secureToken } = req.body;
 
-    // Check if the secure token is missing
-    if (!secureToken) {
-      console.error("Secure token is missing.");
-      return res.status(400).json({ error: "Secure token is missing." });
-    }
-
-    console.log("Received secure token:", secureToken);
-
-    // Fetch entryId and totalPrice using the secureToken
-    let entryId, totalPrice;
-    try {
-      ({ entryId, totalPrice } = await getPriceForToken(secureToken)); // Query the database with the token
-      if (!entryId || !totalPrice) {
-        console.error("Invalid token or no data found.");
-        return res.status(400).json({ error: "Invalid token or no data found." });
+      // Check if the secure token is missing
+      if (!secureToken) {
+          console.error("Secure token is missing.");
+          return res.status(400).json({ error: "Secure token is missing." });
       }
-    } catch (error) {
-      console.error("Failed to retrieve data for the token:", error);
-      return res.status(500).json({ error: "Failed to retrieve order data." });
-    }
 
-    // Capture the order via PayPal
-    const { status, jsonResponse, httpStatusCode } = await captureOrder(orderID);
-    console.log("Capture Order HTTP Status Code:", httpStatusCode);
+      console.log("Received secure token:", secureToken);
 
-    // Check if transaction was successful
-    if (status === 'COMPLETED') {
-      console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
-
-      // Update payment status
-      await updatePaymentStatus(entryId, 'paid');
-
-      // Declaring outside try catch to have larger scope
-      let emailData = null;
-
-      // Fetch customer email
+      // Fetch entryId and totalPrice using the secureToken
+      let entryId, totalPrice;
       try {
-        emailData = await fetchForminatorEntryEmail(entryId);
+          ({ entryId, totalPrice } = await getPriceForToken(secureToken)); // Query the database with the token
+          if (!entryId || !totalPrice) {
+              console.error("Invalid token or no data found.");
+              return res.status(400).json({ error: "Invalid token or no data found." });
+          }
       } catch (error) {
-        console.error('Failed to fetch email data:', error);
+          console.error("Failed to retrieve data for the token:", error);
+          return res.status(500).json({ error: "Failed to retrieve order data." });
       }
 
-      if (emailData && emailData.email && emailData.file_path) {
-        console.log('Customer Email:', emailData.email);
-        console.log('File Path:', emailData.file_path);
+      // Capture the order via PayPal
+      const { status, jsonResponse, httpStatusCode } = await captureOrder(orderID);
+      console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
-        // Example of reading file content and preparing an attachment
-        const attachment = [{
-          filename: path.basename(emailData.file_path),
-          path: emailData.file_path
-        }];
+      // Store the transaction ID regardless of status
+      const transactionId = jsonResponse.id;
+      await storeTransactionId(entryId, transactionId);
 
-        // Define the customer email options, including the attachment
-        let mailOptionsCustomer = {
-          from: sellerEmail,
-          to: emailData.email, // list of receivers
-          subject: 'Order Confirmation',
-          text: 'Your order has been confirmed.'
-        };
+      // Check if transaction was successful
+      if (status === 'COMPLETED') {
+          console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
 
-        console.log('The data being passed for customer email', mailOptionsCustomer);
+          // Update payment status
+          await updatePaymentStatus(entryId, 'paid');
 
-        try {
-          await sendEmail(mailOptionsCustomer);
-          console.log('Customer email sent.');
-        } catch (error) {
-          console.error('Failed to send customer email:', error);
-        }
+          // Declaring outside try-catch to have larger scope
+          let emailData = null;
 
-        let mailOptionsSeller = {
-          from: sellerEmail,
-          to: sellerEmail, // list of receivers
-          subject: 'Order Confirmation',
-          text: 'You have a new order',
-          attachments: attachment
-        };
+          // Fetch customer email
+          try {
+              emailData = await fetchForminatorEntryEmail(entryId);
+          } catch (error) {
+              console.error('Failed to fetch email data:', error);
+          }
 
-        console.log('The data being passed for seller email', mailOptionsSeller);
+          if (emailData && emailData.email && emailData.file_path) {
+              console.log('Customer Email:', emailData.email);
+              console.log('File Path:', emailData.file_path);
 
-        try {
-          await sendEmail(mailOptionsSeller);
-          console.log('Seller email sent.');
-        } catch (error) {
-          console.error('Failed to send seller email:', error);
-        }
+              // Example of reading file content and preparing an attachment
+              const attachment = [{
+                  filename: path.basename(emailData.file_path),
+                  path: emailData.file_path
+              }];
+
+              // Define the customer email options, including the attachment
+              let mailOptionsCustomer = {
+                  from: sellerEmail,
+                  to: emailData.email, // list of receivers
+                  subject: 'Order Confirmation',
+                  text: 'Your order has been confirmed.'
+              };
+
+              console.log('The data being passed for customer email', mailOptionsCustomer);
+
+              try {
+                  await sendEmail(mailOptionsCustomer);
+                  console.log('Customer email sent.');
+              } catch (error) {
+                  console.error('Failed to send customer email:', error);
+              }
+
+              let mailOptionsSeller = {
+                  from: sellerEmail,
+                  to: sellerEmail, // list of receivers
+                  subject: 'Order Confirmation',
+                  text: 'You have a new order',
+                  attachments: attachment
+              };
+
+              console.log('The data being passed for seller email', mailOptionsSeller);
+
+              try {
+                  await sendEmail(mailOptionsSeller);
+                  console.log('Seller email sent.');
+              } catch (error) {
+                  console.error('Failed to send seller email:', error);
+              }
+
+          } else {
+              console.error('Customer email not found for entryId:', entryId);
+          }
+
+          res.status(httpStatusCode).json(jsonResponse);
 
       } else {
-        console.error('Customer email not found for entryId:', entryId);
+          console.error("Failed to capture the transaction. Payment status:", status);
+          res.status(httpStatusCode).json({ error: `Failed to capture transaction. Payment status: ${status}` });
       }
 
-      res.status(httpStatusCode).json(jsonResponse);
-
-    } else {
-      console.error("Failed to capture the transaction. Payment status:", status);
-      res.status(httpStatusCode).json({ error: "Failed to capture transaction. Payment status: ${status}" });
-    }
-
   } catch (error) {
-    console.error("Failed to capture order:", error.message);
-    res.status(500).json({ error: "Failed to capture order." });
+      console.error("Failed to capture order:", error.message);
+      res.status(500).json({ error: "Failed to capture order." });
   }
 });
 
@@ -428,23 +465,30 @@ app.listen(PORT, () => {
 });
 
 // // Endpoint to receive webhook data
-// app.post("/api/webhook", async (req, res) => {
-//   const event = req.body;
+// Endpoint to receive webhook data
+app.post("/api/paypal/webhook", async (req, res) => {
+  try {
+      const { event_type, resource } = req.body;
 
-//   try {
-//     // Process the webhook event
-//     if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-//       const orderId = event.resource.id;
+      if (event_type === "PAYMENT.CAPTURE.COMPLETED" && resource.status === "COMPLETED") {
+          const transactionId = resource.id;
+          const entryId = await getEntryIdByTransactionId(transactionId);
 
-//       // Since orderId is the same as entryId, we can directly update the payment status
-//       await updatePaymentStatus(orderId, 'paid');
-//       console.log(`Payment for order ${orderId} has been completed and entry ${orderId} updated to paid.`);
-//     }
+          if (entryId) {
+              // Update the payment status to 'paid' if it is now completed
+              await updatePaymentStatus(entryId, 'paid');
+              res.status(200).send('Webhook processed successfully.');
+          } else {
+              console.error('No matching entry found for transaction ID:', transactionId);
+              res.status(400).send('No matching entry found.');
+          }
+      } else {
+          console.log('Payment is not completed. Ignoring the event.');
+          res.status(200).send('Payment not completed. No action taken.');
+      }
+  } catch (error) {
+      console.error("Failed to process PayPal webhook:", error.message);
+      res.status(500).send("Failed to process PayPal webhook.");
+  }
+});
 
-//     // Respond with a 200 status to acknowledge the receipt of the webhook
-//     res.sendStatus(200);
-//   } catch (error) {
-//     console.error("Error processing PayPal webhook:", error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
