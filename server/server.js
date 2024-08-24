@@ -228,14 +228,20 @@ async function sendEmail(mailOptions) {
 }
 
 async function updatePaymentStatus(entryId, status) {
-  const sql = `UPDATE wp_frmt_form_entry_meta SET meta_value = ? WHERE entry_id = ? AND meta_key = 'hidden-1'`;
-  try {
+  // Only update the payment status if the status is 'COMPLETED'
+  if (status === 'COMPLETED') {
+    const sql = `UPDATE wp_frmt_form_entry_meta SET meta_value = ? WHERE entry_id = ? AND meta_key = 'hidden-1'`;
+    try {
       const [result] = await db.query(sql, [status, entryId]);
       console.log('Payment status updated successfully:', result);
-  } catch (error) {
+    } catch (error) {
       console.error('Error updating payment status:', error);
+    }
+  } else {
+    console.log(`Payment status for entry ${entryId} is not 'COMPLETED'. Current status: ${status}`);
   }
 }
+
 
 async function getPriceForToken(token) {
   try {
@@ -421,24 +427,24 @@ app.listen(PORT, () => {
   console.log(`Node server listening at http://localhost:${PORT}/`);
 });
 
-// Endpoint to receive webhook data
-app.post("/api/webhook", async (req, res) => {
-  const event = req.body;
+// // Endpoint to receive webhook data
+// app.post("/api/webhook", async (req, res) => {
+//   const event = req.body;
 
-  try {
-    // Process the webhook event
-    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
-      const orderId = event.resource.id;
+//   try {
+//     // Process the webhook event
+//     if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+//       const orderId = event.resource.id;
 
-      // Since orderId is the same as entryId, we can directly update the payment status
-      await updatePaymentStatus(orderId, 'paid');
-      console.log(`Payment for order ${orderId} has been completed and entry ${orderId} updated to paid.`);
-    }
+//       // Since orderId is the same as entryId, we can directly update the payment status
+//       await updatePaymentStatus(orderId, 'paid');
+//       console.log(`Payment for order ${orderId} has been completed and entry ${orderId} updated to paid.`);
+//     }
 
-    // Respond with a 200 status to acknowledge the receipt of the webhook
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("Error processing PayPal webhook:", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
+//     // Respond with a 200 status to acknowledge the receipt of the webhook
+//     res.sendStatus(200);
+//   } catch (error) {
+//     console.error("Error processing PayPal webhook:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
