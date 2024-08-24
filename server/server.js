@@ -6,17 +6,16 @@ import { fileURLToPath } from 'url';
 import base64 from 'base-64';
 import nodemailer from "nodemailer";
 import path from 'path';
-import { error } from "console";
 
 // Import the database connection pool cool
-import db from './database.js'; // Adjust the path to where your database.js file is located
+import db from './database.js'; 
+// Adjust the path to where database.js file is located
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
 const base = "https://api-m.sandbox.paypal.com";
 const app = express();
 const sellerEmail = "ayeshakhan.mct@gmail.com"
 const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
-const formId = 2063
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -311,7 +310,6 @@ app.get("/", async (req, res) => {
       clientToken: jsonResponse.client_token,
     });
   } catch (err) {
-    console.error('Failed to render checkout page:', err.message);
     res.status(500).send(err.message);
   }
 });
