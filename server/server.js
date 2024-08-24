@@ -12,7 +12,7 @@ import { error } from "console";
 import db from './database.js'; // Adjust the path to where your database.js file is located
 
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PORT = 8888 } = process.env;
-const base = "https://api-m.paypal.com";
+const base = "https://api-m.sandbox.paypal.com";
 const app = express();
 const sellerEmail = "ayeshakhan.mct@gmail.com"
 const sellerEmail_pass = process.env.SELLER_EMAIL_PASSWORD
@@ -154,11 +154,16 @@ const captureOrder = async (orderID) => {
 async function handleResponse(response) {
   try {
     const jsonResponse = await response.json();
-    return {
-      jsonResponse,
-      httpStatusCode: response.status,
+       
+    // Check the payment status in the jsonResponse
+    if (jsonResponse.status ==='COMPLETED') {
+      console.log('Payment completed.');
+      return { status: 'COMPLETED', jsonResponse , httpStatusCode: response.status };
+    } else {
+      console.log('Payment not completed, current status:', jsonResponse.status);
+      return { status: jsonResponse.status, jsonResponse , httpStatusCode: response.status };
     };
-  } catch (err) {
+  } catch (error) {
     const errorMessage = await response.text();
     console.error("Error handling PayPal response:", errorMessage);
     throw new Error(errorMessage);
@@ -331,11 +336,11 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
     }
 
     // Capture the order via PayPal
-    const { jsonResponse, httpStatusCode } = await captureOrder(orderID);
+    const { status, jsonResponse, httpStatusCode } = await captureOrder(orderID);
     console.log("Capture Order HTTP Status Code:", httpStatusCode);
 
     // Check if transaction was successful
-    if (httpStatusCode === 201) {
+    if (status === 'COMPLETED') {
       console.log('EntryID and Price Retrieved', entryId, '&', totalPrice, 'USD');
 
       // Update payment status
@@ -402,8 +407,8 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
       res.status(httpStatusCode).json(jsonResponse);
 
     } else {
-      console.error("Failed to capture the transaction.");
-      res.status(httpStatusCode).json({ error: "Failed to capture transaction." });
+      console.error("Failed to capture the transaction. Payment status:", status);
+      res.status(httpStatusCode).json({ error: "Failed to capture transaction. Payment status: ${status}" });
     }
 
   } catch (error) {
@@ -418,9 +423,22 @@ app.listen(PORT, () => {
 
 // Endpoint to receive webhook data
 app.post("/api/webhook", async (req, res) => {
-  console.log('Initiating webhook route handler');
-  
-  // Respond to indicate successful receipt of webhook data
-  console.log('Webhook data stored successfully')
-  res.status(200).send({ message: "Webhook data stored successfully" });
+  const event = req.body;
+
+  try {
+    // Process the webhook event
+    if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+      const orderId = event.resource.id;
+
+      // Since orderId is the same as entryId, we can directly update the payment status
+      await updatePaymentStatus(orderId, 'paid');
+      console.log(`Payment for order ${orderId} has been completed and entry ${orderId} updated to paid.`);
+    }
+
+    // Respond with a 200 status to acknowledge the receipt of the webhook
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error processing PayPal webhook:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
