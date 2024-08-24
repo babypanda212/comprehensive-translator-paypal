@@ -268,21 +268,22 @@ async function getPriceForToken(token) {
   }
 }
 
-// store transactionid for pending payments
 // Store transaction id for pending payments in the "hidden-2" meta key
 async function storeTransactionId(entryId, transactionId) {
   const sql = `
-    INSERT INTO wp_frmt_form_entry_meta (entry_id, meta_key, meta_value) 
-    VALUES (?, 'hidden-2', ?) 
-    ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)
+    UPDATE wp_frmt_form_entry_meta 
+    SET meta_value = ? 
+    WHERE entry_id = ? AND meta_key = 'hidden-2'
   `;
+  
   try {
-    await db.query(sql, [entryId, transactionId]);
-    console.log('Transaction ID stored successfully in hidden-2.');
+    const [result] = await db.query(sql, [transactionId, entryId]);
+    console.log('Transaction ID stored successfully in hidden-2. Result:', result);
   } catch (error) {
     console.error('Error storing transaction ID:', error);
   }
 }
+
 
 
 // retrieve entryid to update paymenet status when webhook from paypal received
