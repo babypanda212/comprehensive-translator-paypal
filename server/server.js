@@ -229,9 +229,10 @@ async function sendEmail(mailOptions) {
 async function updatePaymentStatus(entryId, status) {
   // Only update the payment status if the status is 'COMPLETED'
   if (status === 'COMPLETED') {
+    value = 'Paid'
     const sql = `UPDATE wp_frmt_form_entry_meta SET meta_value = ? WHERE entry_id = ? AND meta_key = 'hidden-1'`;
     try {
-      const [result] = await db.query(sql, [status, entryId]);
+      const [result] = await db.query(sql, [value, entryId]);
       console.log('Payment status updated successfully:', result);
     } catch (error) {
       console.error('Error updating payment status:', error);
@@ -300,16 +301,6 @@ try {
     return null;
 }
 
-  try {
-    const [rows] = await db.query(sql, [transactionId]);
-    if (rows.length > 0) {
-      return rows[0].entry_id;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching entry by transaction ID:', error);
-    return null;
-  }
 }
 
 
@@ -490,7 +481,7 @@ app.post("/api/paypal/webhook", async (req, res) => {
 
           if (entryId) {
               // Update the payment status to 'paid' if it is now completed
-              await updatePaymentStatus(entryId, 'paid');
+              await updatePaymentStatus(entryId, 'COMPLETED');
               res.status(200).send('Webhook processed successfully.');
           } else {
               console.error('No matching entry found for transaction ID:', transactionId);
