@@ -288,7 +288,18 @@ async function storeTransactionId(entryId, transactionId) {
 
 // retrieve entryid to update paymenet status when webhook from paypal received
 async function getEntryIdByTransactionId(transactionId) {
-  const sql = `SELECT entry_id FROM wp_frmt_form_entry_meta WHERE meta_key = 'transaction_id' AND meta_value = ? LIMIT 1`;
+  const sql = `SELECT entry_id FROM wp_frmt_form_entry_meta WHERE meta_key = 'hidden-2' AND meta_value = ? LIMIT 1`;
+try {
+    const [rows] = await db.query(sql, [transactionId]);
+    if (rows.length > 0) {
+        return rows[0].entry_id;
+    }
+    return null;
+} catch (error) {
+    console.error('Error fetching entry by transaction ID:', error);
+    return null;
+}
+
   try {
     const [rows] = await db.query(sql, [transactionId]);
     if (rows.length > 0) {
