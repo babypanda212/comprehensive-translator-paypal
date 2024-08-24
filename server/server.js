@@ -229,10 +229,9 @@ async function sendEmail(mailOptions) {
 async function updatePaymentStatus(entryId, status) {
   // Only update the payment status if the status is 'COMPLETED'
   if (status === 'COMPLETED') {
-    value = 'Paid'
     const sql = `UPDATE wp_frmt_form_entry_meta SET meta_value = ? WHERE entry_id = ? AND meta_key = 'hidden-1'`;
     try {
-      const [result] = await db.query(sql, [value, entryId]);
+      const [result] = await db.query(sql, ['Paid', entryId]);
       console.log('Payment status updated successfully:', result);
     } catch (error) {
       console.error('Error updating payment status:', error);
