@@ -77,7 +77,7 @@ const generateClientToken = async () => {
     },
   });
 
-  return handleResponse(response);
+  return handleAccessTokenResponse(response);
 };
 
 /**
@@ -143,7 +143,7 @@ const captureOrder = async (orderID) => {
       throw new Error(`Failed to capture PayPal order: ${response.status} - ${response.statusText}`);
     }
 
-    return handleAccessTokenResponse(response);
+    return handleResponse(response);
   } catch (error) {
     console.error("Failed to capture order with PayPal:", error);
     throw error;
@@ -298,8 +298,6 @@ async function storeTransactionId(entryId, transactionId) {
     console.error('Error storing transaction ID:', error);
   }
 }
-
-
 
 // retrieve entryid to update paymenet status when webhook from paypal received
 async function getEntryIdByTransactionId(transactionId) {
