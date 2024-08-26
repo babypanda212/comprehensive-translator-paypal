@@ -71,6 +71,25 @@ async function handleAccessTokenResponse(response) {
 }
 
 /**
+ * Generate a client token for rendering the hosted card fields.
+ * @see https://developer.paypal.com/docs/checkout/advanced/integrate/#link-integratebackend
+ */
+const generateClientToken = async () => {
+  const accessToken = await generateAccessToken();
+  const url = `${base}/v1/identity/generate-token`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Accept-Language": "en_US",
+      "Content-Type": "application/json",
+    },
+  });
+
+  return await handleAccessTokenResponse(response);
+};
+
+/**
  * Create an order to start the transaction.
  * @see https://developer.paypal.com/docs/api/orders/v2/#orders_create
  */
@@ -271,7 +290,7 @@ async function storeTransactionId(entryId, transactionId) {
   }
 }
 
-// retrieve entryid to update payment status when webhook from PayPal is received
+// Retrieve entry ID to update payment status when webhook from PayPal is received
 async function getEntryIdByTransactionId(transactionId) {
   const sql = `SELECT entry_id FROM wp_frmt_form_entry_meta WHERE meta_key = 'hidden-2' AND meta_value = ? LIMIT 1`;
   try {
@@ -286,13 +305,13 @@ async function getEntryIdByTransactionId(transactionId) {
   }
 }
 
-// render checkout page with client id & unique client token
+// Render checkout page with client ID & unique client token
 app.get("/", async (req, res) => {
   try {
-    const { jsonResponse } = await generateClientToken();
+    const clientToken = await generateClientToken();
     res.render("checkout", {
       clientId: PAYPAL_CLIENT_ID,
-      clientToken: jsonResponse.client_token,
+      clientToken,
     });
   } catch (err) {
     res.status(500).send(err.message);
