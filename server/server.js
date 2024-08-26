@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 dotenv.config();
@@ -152,15 +152,13 @@ const captureOrder = async (orderID) => {
 
 async function handleAccessTokenResponse(response) {
   try {
-    const data = await response.json();
-    if (!response.ok) {
-      console.error("Error generating access token:", data);
-      throw new Error(data.error || "Failed to generate access token");
+    const jsonResponse = await response.json();
+    return {
+      jsonResponse,
+      httpStatusCode: response.status,
     }
-    return data.access_token;
   } catch (error) {
     const errorMessage = await response.text();
-    console.error("Error handling access token response:", errorMessage);
     throw new Error(errorMessage);
   }
 }
