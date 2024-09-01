@@ -46,7 +46,7 @@ async function createOrderCallback() {
   }
 
   try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch("/app/api/orders", {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
@@ -94,7 +94,7 @@ async function onApproveCallback(orderId) {
   threedsElement.innerHTML = "";
 
   try {
-      const response = await fetch(`/api/orders/${orderId}/capture`, {
+      const response = await fetch(`/app/api/orders/${orderId}/capture`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
