@@ -333,6 +333,7 @@ app.get("/test", (req, res) => {
 });
 
 app.post("/api/orders", async (req, res) => {
+  console.log("Full request body:", req.body);  // Log the entire request body
   console.log('found api endpoint');
   const { secureToken } = req.body;
   console.log("Received secure token:", secureToken);
