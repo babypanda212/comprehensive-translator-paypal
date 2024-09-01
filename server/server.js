@@ -476,6 +476,9 @@ app.post("/api/orders/:orderID/capture", async (req, res) => {
   }
 });
 
+// iF THE SERVER ROUTING IS removed sue to a rebuilding process then go to /etc/nginx/conf.d/domains and edit the http + https config files
+// ie. comprehensivetranslator.com.conf and ....ssl.conf to include paths to the app
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Node server listening at http://localhost:${PORT}/`);
 });
