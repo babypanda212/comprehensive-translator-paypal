@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use('/app', express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client')));
 
 
 // parse post params sent in body in json format
